@@ -43,6 +43,15 @@ def get_issue(issue_key: str):
     return response.json()
 
 
+TRANSITION_NAME_TO_ID = {
+    "to do": "11",
+    "todo": "11",
+    "in progress": "21",
+    "in-progress": "21",
+    "done": "31",
+}
+
+
 def transition_issue(issue_key: str, transition_name: str):
     """
     Transition a Jira issue to a new workflow status by matching the transition name.
@@ -51,31 +60,33 @@ def transition_issue(issue_key: str, transition_name: str):
     transitions_url = f"{JIRA_BASE_URL}/rest/api/3/issue/{issue_key}/transitions"
     headers = {"Accept": "application/json", "Content-Type": "application/json"}
 
+    # Prefer direct POST by id as requested; map common names to ids.
+    tid = transition_name.strip()
+    if not tid.isdigit():
+        tid = TRANSITION_NAME_TO_ID.get(tid.lower(), "")
+
+    if tid.isdigit():
+        # Minimal body resembling {"transition": {"id": 31}}
+        payload = {"transition": {"id": tid}}
+        r2 = _request("POST", transitions_url, headers=headers, json=payload)
+        if r2.status_code in (200, 204):
+            return {"ok": True, "moved_to_id": tid}
+        return {"ok": False, "status": r2.status_code, "error": r2.text}
+
+    # Fallback: discover available transitions and match by name
     response = _request("GET", transitions_url, headers=headers)
     transitions = response.json().get("transitions", [])
     if not transitions:
         raise RuntimeError(f"No transitions available for issue {issue_key}")
-
+    transition_name_lower = transition_name.lower()
     target_transition = next(
-        (t for t in transitions if t["name"].lower() == transition_name.lower()),
+        (t for t in transitions if t.get("name", "").lower() == transition_name_lower),
         None,
     )
     if not target_transition:
         available = ", ".join(t["name"] for t in transitions)
         raise RuntimeError(f"Transition '{transition_name}' not found. Available: {available}")
-
-    payload = {
-        "transition": {"id": target_transition["id"]},
-        "update": {
-            "comment": [
-                {
-                    "add": {
-                        "body": f"Issue automatically moved to '{transition_name}' by the Dynamic Work Order system."
-                    }
-                }
-            ]
-        },
-    }
+    payload = {"transition": {"id": target_transition["id"]}}
     r2 = _request("POST", transitions_url, headers=headers, json=payload)
     if r2.status_code in (200, 204):
         return {"ok": True, "moved_to": target_transition.get("to", {}).get("name", transition_name)}

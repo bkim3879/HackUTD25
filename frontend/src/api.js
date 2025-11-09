@@ -56,3 +56,12 @@ export async function generateWorkorderUpdate(issueId, operatorNotes, legacyKey)
   });
   return handleResponse(response);
 }
+
+export async function completeWorkorder(issueIdOrKey, transitionName = "31", resolutionComment) {
+  const response = await fetch(`${API_BASE}/workorders/${issueIdOrKey}/complete`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ transition_name: transitionName, resolution_comment: resolutionComment || null }),
+  });
+  return handleResponse(response);
+}

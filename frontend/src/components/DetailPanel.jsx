@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { extractLocationFromDescription, extractLocationDetails } from "../formatters.js";
 import { StatusPill } from "./StatusPill.jsx";
 
 const priorityTone = {
@@ -18,14 +19,17 @@ const statusTone = {
   done: "success",
 };
 
-export function DetailPanel({ order, loading, onStepUpdate, onAddNote }) {
+export function DetailPanel({ order, loading, onStepUpdate, onAddNote, onComplete }) {
   const [noteText, setNoteText] = useState("");
   const [noteAuthor, setNoteAuthor] = useState("Technician");
+  const [completeComment, setCompleteComment] = useState("");
 
   const missingFields = order?.missing_fields || [];
 
   const normalizedPriority = useMemo(() => (order?.priority || "").toLowerCase(), [order]);
   const normalizedStatus = useMemo(() => (order?.status || "").toLowerCase(), [order]);
+  const location = useMemo(() => extractLocationFromDescription(order?.description || ""), [order]);
+  const locationDetails = useMemo(() => extractLocationDetails(order?.description || ""), [order]);
 
   const handleStepToggle = (idx, currentStatus) => {
     const nextStatus = currentStatus === "done" ? "pending" : "done";
@@ -41,7 +45,7 @@ export function DetailPanel({ order, loading, onStepUpdate, onAddNote }) {
 
   if (loading) {
     return (
-      <article className="panel panel--stacked">
+      <article className="panel panel--wide">
         <h3>Work Order Detail</h3>
         <p>Loading details...</p>
       </article>
@@ -50,7 +54,7 @@ export function DetailPanel({ order, loading, onStepUpdate, onAddNote }) {
 
   if (!order) {
     return (
-      <article className="panel panel--stacked">
+      <article className="panel panel--wide">
         <h3>Work Order Detail</h3>
         <p>Select a work order to view steps.</p>
       </article>
@@ -58,7 +62,7 @@ export function DetailPanel({ order, loading, onStepUpdate, onAddNote }) {
   }
 
   return (
-    <article className="panel panel--stacked">
+    <article className="panel panel--wide">
       <h3>Work Order Detail</h3>
       <div className="detail-card">
         <p className="detail-label">Issue</p>
@@ -69,6 +73,19 @@ export function DetailPanel({ order, loading, onStepUpdate, onAddNote }) {
           <StatusPill label={order.status || "Unknown"} tone={statusTone[normalizedStatus]} />
           <StatusPill label={`Score ${order.score?.toFixed(2) ?? "0.00"}`} tone="muted" />
         </div>
+        {(locationDetails.rack || locationDetails.gpu || locationDetails.server || locationDetails.node || locationDetails.freeform) && (
+          <div className="location-card">
+            <p className="location-title">Location</p>
+            <p className="location-text">
+              {[locationDetails.rack && `Rack ${locationDetails.rack}`,
+                locationDetails.server && `Server ${locationDetails.server}`,
+                locationDetails.node && `Node ${locationDetails.node}`,
+                locationDetails.gpu && `GPU ${locationDetails.gpu}`]
+                .filter(Boolean)
+                .join(" • ") || locationDetails.freeform || location}
+            </p>
+          </div>
+        )}
 
         {missingFields.length ? (
           <div className="missing-alert">
@@ -81,18 +98,24 @@ export function DetailPanel({ order, loading, onStepUpdate, onAddNote }) {
 
         <h4>Steps</h4>
         <ul className="checklist">
-          {(order.steps || []).map((step, idx) => (
-            <li key={`${step.description}-${idx}`}>
-              <label>
+          {(order.steps || []).map((step, idx) => {
+            const inputId = `step-${idx}`;
+            return (
+              <li key={`${step.description}-${idx}`} className="step">
                 <input
+                  id={inputId}
+                  className="step-checkbox"
                   type="checkbox"
                   checked={step.status === "done"}
                   onChange={() => handleStepToggle(idx, step.status)}
                 />
-                <span>{step.description}</span>
-              </label>
-            </li>
-          ))}
+                <label htmlFor={inputId} className="step-label">
+                  <span className="step-control" aria-hidden="true" />
+                  <span className="step-text">{step.description}</span>
+                </label>
+              </li>
+            );
+          })}
         </ul>
 
         <h4>Technician Notes</h4>
@@ -126,6 +149,24 @@ export function DetailPanel({ order, loading, onStepUpdate, onAddNote }) {
             Add Note
           </button>
         </form>
+
+        <h4>Complete Work Order</h4>
+        <div className="note-form__row">
+          <input
+            type="text"
+            value={completeComment}
+            onChange={(e) => setCompleteComment(e.target.value)}
+            placeholder="Resolution comment (optional)"
+          />
+          <button
+            type="button"
+            className="button primary"
+            onClick={() => onComplete?.(completeComment)}
+            disabled={order.completed}
+          >
+            {order.completed ? "Completed" : "Complete Work Order"}
+          </button>
+        </div>
       </div>
     </article>
   );

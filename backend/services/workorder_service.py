@@ -129,18 +129,22 @@ def refresh_work_orders() -> Dict[str, Any]:
 def _build_record(issue: Dict[str, Any]) -> WorkOrderRecord:
     missing = _missing_fields(issue)
     score = _compute_score(issue, missing)
+    status = issue.get("status")
+    normalized_status = (status or "").strip().lower()
+    is_completed = normalized_status in {"done", "closed", "resolved"}
     return WorkOrderRecord(
         key=issue["key"],
         jira_id=issue.get("id"),
         summary=issue.get("summary", ""),
         description=issue.get("description"),
         priority=issue.get("priority"),
-        status=issue.get("status"),
+        status=status,
         assignee=issue.get("assignee"),
         updated=issue.get("updated"),
         missing_fields=missing,
         score=score,
         steps=_baseline_steps(),
+        completed=is_completed,
     )
 
 

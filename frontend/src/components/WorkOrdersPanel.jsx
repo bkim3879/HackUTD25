@@ -16,7 +16,7 @@ const statusTone = {
   "To Do": "muted",
 };
 
-export function WorkOrdersPanel({ orders, selectedKey, onSelect, onRefresh, loading }) {
+export function WorkOrdersPanel({ orders, selectedKey, onSelect, onRefresh, loading, onOpenSelected }) {
   return (
     <article className="panel panel--wide">
       <div className="panel__header">
@@ -75,6 +75,14 @@ export function WorkOrdersPanel({ orders, selectedKey, onSelect, onRefresh, load
           ))}
         </tbody>
       </table>
+      <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8 }}>
+        <div />
+        <div>
+          <button className="button ghost" type="button" onClick={onOpenSelected} disabled={!selectedKey}>
+            View Selected Work Order
+          </button>
+        </div>
+      </div>
     </article>
   );
 }

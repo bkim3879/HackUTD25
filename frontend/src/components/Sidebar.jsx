@@ -1,14 +1,13 @@
 import { StatusPill } from "./StatusPill.jsx";
 
 const sections = [
-  { label: "Dashboard", active: true },
-  { label: "Active Work Orders" },
-  { label: "GPU Uptime Analytics" },
-  { label: "Technician Tools" },
-  { label: "Settings" },
+  { id: "dashboard", label: "Dashboard" },
+  { id: "workorders", label: "Active Work Orders" },
+  { id: "tools", label: "Technician Tools" },
+  { id: "settings", label: "Settings" }
 ];
 
-export function Sidebar() {
+export function Sidebar({ active = "dashboard", onNavigate }) {
   return (
     <aside className="sidebar">
       <div className="brand">
@@ -20,18 +19,26 @@ export function Sidebar() {
       </div>
       <nav className="sidebar__nav">
         <p className="sidebar__section-label">Overview</p>
-        {sections.slice(0, 3).map((item) => (
+        {sections.slice(0, 1).map((item) => (
           <button
-            key={item.label}
-            className={`nav-link ${item.active ? "active" : ""}`}
+            key={item.id}
+            className={`nav-link ${active === item.id ? "active" : ""}`}
             type="button"
+            aria-pressed={active === item.id}
+            onClick={() => onNavigate?.(item.id)}
           >
             {item.label}
           </button>
         ))}
         <p className="sidebar__section-label">Tools</p>
-        {sections.slice(3).map((item) => (
-          <button key={item.label} className="nav-link" type="button">
+        {sections.slice(2).map((item) => (
+          <button
+            key={item.id}
+            className={`nav-link ${active === item.id ? "active" : ""}`}
+            type="button"
+            aria-pressed={active === item.id}
+            onClick={() => onNavigate?.(item.id)}
+          >
             {item.label}
           </button>
         ))}
