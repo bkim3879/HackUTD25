@@ -18,7 +18,7 @@ const statusTone = {
 
 export function WorkOrdersPanel({ orders, selectedKey, onSelect, onRefresh, loading, onOpenSelected }) {
   return (
-    <article className="panel panel--wide">
+    <article className="panel panel--stacked">
       <div className="panel__header">
         <div>
           <h3>Work Orders</h3>

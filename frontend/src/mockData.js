@@ -64,14 +64,14 @@ export const checklist = [
 export const assistantMessages = [
   {
     author: "ai",
-    text: "Monitoring anomaly feed—largest delta is GPU rack A12. Recommend focusing there first.",
+    text: "Monitoring GPU connectivity, GPU rack 12 has high packet loss. Recommend focusing there first.",
   },
   {
     author: "user",
-    text: "Prep containment kit ETA?",
+    text: "Recommended approach?",
   },
   {
     author: "ai",
-    text: "Kit staged at bay 4B, courier delivers in 6 min. Adding to checklist.",
+    text: "Initial triage suggests a potential faulty switch. Advise checking switch logs and performing a physical inspection of rack 12's network connections.",
   },
 ];

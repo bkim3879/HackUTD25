@@ -11,10 +11,10 @@ export function Sidebar({ active = "dashboard", onNavigate }) {
   return (
     <aside className="sidebar">
       <div className="brand">
-        <div className="brand__mark">DW</div>
+        <div className="brand__mark">R</div>
         <div>
-          <p className="brand__title">Dynamic Work Order</p>
-          <p className="brand__subtitle">Data Center Ops</p>
+          <p className="brand__title">Reflex</p>
+          <p className="brand__subtitle">Dynamic Work Order Generation</p>
         </div>
       </div>
       <nav className="sidebar__nav">

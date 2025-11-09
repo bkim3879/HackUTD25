@@ -3,19 +3,20 @@ import { Sidebar } from "./components/Sidebar.jsx";
 import { Header } from "./components/Header.jsx";
 import { MetricsGrid } from "./components/MetricsGrid.jsx";
 import { WorkOrdersPanel } from "./components/WorkOrdersPanel.jsx";
+import { InProgressWorkOrdersPanel } from "./components/InProgressWorkOrdersPanel.jsx";
 import { CompletedWorkOrdersPanel } from "./components/CompletedWorkOrdersPanel.jsx";
 import { DetailPanel } from "./components/DetailPanel.jsx";
 import { AssistantPanel } from "./components/AssistantPanel.jsx";
-  import {
-    addTechnicianNote,
-    fetchWorkorderDetail,
-    fetchWorkorders,
-    generateWorkorderUpdate,
-    refreshWorkorders,
-    updateWorkorderStep,
-    completeWorkorder,
-  } from "./api.js";
-  import { formatWorkOrderToText } from "./formatters.js";
+import {
+  addTechnicianNote,
+  fetchWorkorderDetail,
+  fetchWorkorders,
+  generateWorkorderUpdate,
+  refreshWorkorders,
+  updateWorkorderStep,
+  completeWorkorder,
+  startWorkorder,
+} from "./api.js";
 import { assistantMessages as mockAssistantMessages, metrics as mockMetrics } from "./mockData.js";
 
 export default function App() {
@@ -28,6 +29,7 @@ export default function App() {
   const [error, setError] = useState(null);
   const [assistantBusy, setAssistantBusy] = useState(false);
   const [view, setView] = useState("dashboard");
+  const [chatCollapsed, setChatCollapsed] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -82,24 +84,42 @@ export default function App() {
       ...prev,
       { author: "user", text },
     ]);
-    generateWorkorderUpdate(selectedDetail?.jira_id || selectedKey, text, selectedDetail?.key)
+    generateWorkorderUpdate(
+      selectedDetail?.jira_id || selectedKey,
+      text,
+      selectedDetail?.key,
+      selectedDetail,
+    )
       .then((response) => {
+        const planText = response.plan ? `Plan:\n${response.plan}` : "";
+        const answerText = response.answer || response.work_order?.answer;
+        const referenceText = (response.references || [])
+          .map((ref, idx) => `${idx + 1}. ${ref.source || "manual"}${ref.page ? ` p.${ref.page}` : ""}`)
+          .join("\n");
+        const body = [
+          planText,
+          answerText,
+          referenceText ? `Sources:\n${referenceText}` : "",
+        ]
+          .filter(Boolean)
+          .join("\n\n");
+        const fallbackText = body || "Assistant did not return a response.";
         setMessages((prev) => [
           ...prev,
           {
             author: "ai",
-            text: response.work_order
-              ? `${response.warning ? `[${response.warning}]\n` : ""}${formatWorkOrderToText(
-                  response.work_order
-                )}`
-              : response.missing_fields?.length
-                ? `Missing Jira info: ${response.missing_fields.join(", ")}. Please update the ticket and try again.`
-                : "Unable to generate update.",
+            text: fallbackText,
           },
         ]);
       })
       .catch((err) => {
-        setMessages((prev) => [...prev, { author: "ai", text: `Error: ${err.message}` }]);
+        setMessages((prev) => [
+          ...prev,
+          {
+            author: "ai",
+            text: `Assistant temporarily unavailable. Please retry in a moment. (details: ${err.message})`,
+          },
+        ]);
       })
       .finally(() => setAssistantBusy(false));
   };
@@ -169,12 +189,43 @@ export default function App() {
       .catch((err) => setError(err.message));
   };
 
+  const handleBegin = () => {
+    if (!selectedKey) return;
+    const currentId = selectedDetail?.jira_id || selectedKey;
+    startWorkorder(currentId, "21")
+      .then(() =>
+        refreshWorkorders()
+          .then(fetchWorkorders)
+          .then((payload) => {
+            const results = payload.results || [];
+            setOrders(results);
+            if (currentId) {
+              setSelectedKey(currentId);
+              return fetchWorkorderDetail(currentId)
+                .then((record) => setSelectedDetail(record))
+                .catch((err) => setError(err.message));
+            }
+          }),
+      )
+      .catch((err) => setError(err.message));
+  };
+
   const selectedOrder = useMemo(
     () => orders.find((order) => order.key === selectedKey) || null,
     [orders, selectedKey],
   );
 
-  const openOrders = useMemo(() => orders.filter((o) => !o.completed), [orders]);
+  const inProgressOrders = useMemo(
+    () => orders.filter((o) => (o.status || "").toLowerCase() === "in progress" && !o.completed),
+    [orders],
+  );
+  const queuedOrders = useMemo(
+    () =>
+      orders.filter(
+        (o) => !o.completed && (o.status || "").toLowerCase() !== "in progress",
+      ),
+    [orders],
+  );
   const completedOrders = useMemo(() => orders.filter((o) => o.completed), [orders]);
 
   const metrics = useMemo(() => {
@@ -203,7 +254,7 @@ export default function App() {
   }, [orders]);
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell ${chatCollapsed ? "chat-collapsed" : ""}`}>
       <Sidebar active={view} onNavigate={handleNavigate} />
       <main className="main-panel">
         <Header onRefresh={handleRefresh} loading={loading} error={error} />
@@ -211,14 +262,22 @@ export default function App() {
           <>
             <MetricsGrid metrics={metrics} />
             <section className="main-grid">
-              <WorkOrdersPanel
-                orders={openOrders}
-                selectedKey={selectedKey}
-                loading={loading}
-                onRefresh={handleRefresh}
-                onSelect={handleSelectOrder}
-                onOpenSelected={() => setView("workorderDetail")}
-              />
+              <div className="panel panel--wide stack">
+                <WorkOrdersPanel
+                  orders={queuedOrders}
+                  selectedKey={selectedKey}
+                  loading={loading}
+                  onRefresh={handleRefresh}
+                  onSelect={handleSelectOrder}
+                  onOpenSelected={() => setView("workorderDetail")}
+                />
+                <InProgressWorkOrdersPanel
+                  orders={inProgressOrders}
+                  selectedKey={selectedKey}
+                  onSelect={handleSelectOrder}
+                  onOpenSelected={() => setView("workorderDetail")}
+                />
+              </div>
               <CompletedWorkOrdersPanel
                 orders={completedOrders}
                 selectedKey={selectedKey}
@@ -243,6 +302,7 @@ export default function App() {
               onStepUpdate={handleStepUpdate}
               onAddNote={handleAddNote}
               onComplete={handleComplete}
+              onBegin={handleBegin}
             />
           </section>
         )}
@@ -271,6 +331,8 @@ export default function App() {
         disabled={!selectedKey}
         busy={assistantBusy}
         contextKey={selectedKey}
+        collapsed={chatCollapsed}
+        onToggleCollapse={() => setChatCollapsed((prev) => !prev)}
       />
     </div>
   );

@@ -27,6 +27,12 @@ class CompletePayload(BaseModel):
     )
 
 
+class StartPayload(BaseModel):
+    transition_name: str = Field(
+        "21", description="Jira workflow transition (id or name) that represents In Progress."
+    )
+
+
 @router.post("/refresh")
 def refresh_workorders():
     """Pull the latest Jira tickets and rebuild the work order registry."""
@@ -90,3 +96,14 @@ def complete_workorder(issue_id: str, payload: CompletePayload):
     if payload.resolution_comment:
         workorder_service.record_note(issue_id, "system", payload.resolution_comment)
     return response
+
+
+@router.post("/{issue_id}/start")
+def start_workorder(issue_id: str, payload: StartPayload):
+    try:
+        record = workorder_service.mark_in_progress(issue_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+    jira_transition = jira_service.transition_issue(issue_id, payload.transition_name)
+    return {"work_order": record.to_dict(), "jira_transition": jira_transition}

@@ -2,7 +2,7 @@ export function Header({ onRefresh, loading, error }) {
   return (
     <header className="main-header">
       <div>
-        <h1>Ops Command Center</h1>
+        <h1>Work Order Management</h1>
         <p>
           {loading ? "Syncing with Jira..." : "Synced"} • <span>{error ? `Error: ${error}` : "Live"}</span>
         </p>

@@ -19,7 +19,7 @@ const statusTone = {
   done: "success",
 };
 
-export function DetailPanel({ order, loading, onStepUpdate, onAddNote, onComplete }) {
+export function DetailPanel({ order, loading, onStepUpdate, onAddNote, onComplete, onBegin }) {
   const [noteText, setNoteText] = useState("");
   const [noteAuthor, setNoteAuthor] = useState("Technician");
   const [completeComment, setCompleteComment] = useState("");
@@ -30,6 +30,8 @@ export function DetailPanel({ order, loading, onStepUpdate, onAddNote, onComplet
   const normalizedStatus = useMemo(() => (order?.status || "").toLowerCase(), [order]);
   const location = useMemo(() => extractLocationFromDescription(order?.description || ""), [order]);
   const locationDetails = useMemo(() => extractLocationDetails(order?.description || ""), [order]);
+  const isInProgress = normalizedStatus === "in progress";
+  const isCompleted = Boolean(order?.completed);
 
   const handleStepToggle = (idx, currentStatus) => {
     const nextStatus = currentStatus === "done" ? "pending" : "done";
@@ -150,23 +152,38 @@ export function DetailPanel({ order, loading, onStepUpdate, onAddNote, onComplet
           </button>
         </form>
 
-        <h4>Complete Work Order</h4>
-        <div className="note-form__row">
-          <input
-            type="text"
-            value={completeComment}
-            onChange={(e) => setCompleteComment(e.target.value)}
-            placeholder="Resolution comment (optional)"
-          />
-          <button
-            type="button"
-            className="button primary"
-            onClick={() => onComplete?.(completeComment)}
-            disabled={order.completed}
-          >
-            {order.completed ? "Completed" : "Complete Work Order"}
-          </button>
-        </div>
+        {!isInProgress && !isCompleted && (
+          <>
+            <h4>Begin Work Order</h4>
+            <div className="note-form__row">
+              <button type="button" className="button primary" onClick={onBegin}>
+                Begin Work Order
+              </button>
+            </div>
+          </>
+        )}
+
+        {isInProgress && (
+          <>
+            <h4>Complete Work Order</h4>
+            <div className="note-form__row">
+              <input
+                type="text"
+                value={completeComment}
+                onChange={(e) => setCompleteComment(e.target.value)}
+                placeholder="Resolution comment (optional)"
+              />
+              <button
+                type="button"
+                className="button primary"
+                onClick={() => onComplete?.(completeComment)}
+                disabled={order.completed}
+              >
+                {order.completed ? "Completed" : "Complete Work Order"}
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </article>
   );

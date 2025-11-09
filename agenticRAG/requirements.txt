@@ -1,0 +1,7 @@
+fastapi
+uvicorn[standard]
+langchain>=0.2.11
+langchain-nvidia-ai-endpoints>=0.2.0
+faiss-cpu
+pypdf
+python-dotenv

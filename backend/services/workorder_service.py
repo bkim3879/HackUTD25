@@ -6,6 +6,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from services import xjira_service
+from services.baseline_steps import select_steps
 
 REQUIRED_FIELDS = ["summary", "description", "priority", "assignee"]
 
@@ -27,14 +28,6 @@ KEYWORD_WEIGHTS = {
     "network": 0.1,
     "maintenance": 0.05,
 }
-
-BASELINE_STEPS = [
-    "Inspect sensor telemetry and confirm alert thresholds.",
-    "Power cycle the affected server or sled if safe to do so.",
-    "Verify airflow paths and clear obstructions.",
-    "Validate coolant/air loop pressures before ramping load.",
-]
-
 
 def _keyword_score(text: str | None) -> float:
     if not text:
@@ -111,10 +104,7 @@ def _compute_score(issue: Dict[str, Any], missing: List[str]) -> float:
 
 
 def _baseline_steps() -> List[Dict[str, Any]]:
-    return [
-        {"description": step, "status": "pending"}
-        for step in BASELINE_STEPS
-    ]
+    return []
 
 
 def refresh_work_orders() -> Dict[str, Any]:
@@ -143,7 +133,7 @@ def _build_record(issue: Dict[str, Any]) -> WorkOrderRecord:
         updated=issue.get("updated"),
         missing_fields=missing,
         score=score,
-        steps=_baseline_steps(),
+        steps=[{"description": step, "status": "pending"} for step in select_steps(issue.get("summary"), issue.get("description"))],
         completed=is_completed,
     )
 
@@ -192,4 +182,14 @@ def mark_completed(issue_id: str) -> WorkOrderRecord:
     if not record:
         raise KeyError(f"Unknown work order {issue_id}")
     record.completed = True
+    record.status = "Done"
+    return record
+
+
+def mark_in_progress(issue_id: str) -> WorkOrderRecord:
+    record = get_work_order(issue_id)
+    if not record:
+        raise KeyError(f"Unknown work order {issue_id}")
+    record.status = "In Progress"
+    record.completed = False
     return record

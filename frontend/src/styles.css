@@ -42,6 +42,10 @@ input {
   min-height: 100vh;
 }
 
+.app-shell.chat-collapsed {
+  grid-template-columns: 240px minmax(0, 1fr) 48px;
+}
+
 .sidebar,
 .assistant-panel {
   background: var(--surface);
@@ -172,13 +176,13 @@ input {
   gap: var(--spacing);
 }
 
-.icon-button {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  border: 1px solid var(--border);
-  background: var(--surface);
+
+.collapse-button {
+  border: 0;
+  background: transparent;
   cursor: pointer;
+  font-size: 1rem;
+  padding: 4px;
 }
 
 .profile-chip {
@@ -255,6 +259,12 @@ input {
 
 .panel--wide {
   grid-column: span 12;
+}
+
+.panel--wide.stack {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--spacing) * 2);
 }
 
 .panel--stacked {
@@ -551,6 +561,38 @@ input {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+.assistant-panel__controls {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing);
+}
+
+.assistant-panel--collapsed {
+  padding: calc(var(--spacing) * 2) var(--spacing);
+  align-items: center;
+  justify-content: center;
+}
+
+.assistant-panel--collapsed .assistant-panel__header {
+  flex-direction: column;
+  gap: var(--spacing);
+}
+
+.assistant-panel--collapsed h3 {
+  margin: 0;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  font-size: 0.75rem;
+}
+
+.assistant-panel__collapsed-label {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--muted-text);
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
 }
 
 .assistant-context {
