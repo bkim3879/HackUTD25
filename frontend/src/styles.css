@@ -69,6 +69,28 @@ input {
   min-height: 100vh;
 }
 
+.toast {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  padding: 10px 16px;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  z-index: 1000;
+}
+
+.toast--success {
+  border-color: var(--success);
+  color: var(--success);
+}
+
+.toast--error {
+  border-color: var(--alert);
+  color: var(--alert);
+}
+
 .brand {
   display: flex;
   align-items: center;

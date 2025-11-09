@@ -7,6 +7,7 @@ import { InProgressWorkOrdersPanel } from "./components/InProgressWorkOrdersPane
 import { CompletedWorkOrdersPanel } from "./components/CompletedWorkOrdersPanel.jsx";
 import { DetailPanel } from "./components/DetailPanel.jsx";
 import { AssistantPanel } from "./components/AssistantPanel.jsx";
+import { Toast } from "./components/Toast.jsx";
 import {
   addTechnicianNote,
   fetchWorkorderDetail,
@@ -30,6 +31,14 @@ export default function App() {
   const [assistantBusy, setAssistantBusy] = useState(false);
   const [view, setView] = useState("dashboard");
   const [chatCollapsed, setChatCollapsed] = useState(false);
+  const [toast, setToast] = useState(null);
+  const [toastTone, setToastTone] = useState("info");
+  const showToast = (message, tone = "info") => {
+    setToast(message);
+    setToastTone(tone);
+    window.clearTimeout(showToast._timer);
+    showToast._timer = window.setTimeout(() => setToast(null), 3000);
+  };
 
   useEffect(() => {
     setLoading(true);
@@ -58,9 +67,11 @@ export default function App() {
     refreshWorkorders()
       .then(fetchWorkorders)
       .then((payload) => {
-        setOrders(payload.results || []);
+        const results = payload.results || [];
+        setOrders(results);
         if ((payload.results || []).length) {
           setSelectedKey(payload.results[0].key);
+          showToast("Work orders refreshed", "success");
         } else {
           setSelectedDetail(null);
         }
@@ -182,6 +193,7 @@ export default function App() {
             }
           })
           .finally(() => {
+            showToast("Work order completed", "success");
             // Navigate back to the work order list view after completion
             setView("workorders");
           });
@@ -205,7 +217,8 @@ export default function App() {
                 .then((record) => setSelectedDetail(record))
                 .catch((err) => setError(err.message));
             }
-          }),
+          })
+          .then(() => showToast("Work order started", "success")),
       )
       .catch((err) => setError(err.message));
   };
@@ -257,6 +270,7 @@ export default function App() {
     <div className={`app-shell ${chatCollapsed ? "chat-collapsed" : ""}`}>
       <Sidebar active={view} onNavigate={handleNavigate} />
       <main className="main-panel">
+        <Toast message={toast} tone={toastTone} />
         <Header onRefresh={handleRefresh} loading={loading} error={error} />
         {view === "dashboard" && (
           <>
