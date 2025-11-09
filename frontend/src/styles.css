@@ -328,6 +328,24 @@ input {
   background: rgba(0, 85, 255, 0.08);
 }
 
+.order-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--spacing);
+}
+
+.order-summary__title {
+  margin: 0;
+  font-weight: 600;
+}
+
+.order-summary__score {
+  margin: 0;
+  color: var(--muted-text);
+  font-size: 0.75rem;
+}
+
 .status-pill {
   display: inline-flex;
   align-items: center;
@@ -356,6 +374,15 @@ input {
 .status-pill.muted {
   background: var(--border);
   color: var(--neutral-text);
+}
+
+.missing-pill {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgba(255, 200, 0, 0.25);
+  color: #a36200;
+  font-size: 0.75rem;
 }
 
 .chart-card {
@@ -406,10 +433,21 @@ input {
   font-size: 1rem;
 }
 
+.missing-alert {
+  background: rgba(255, 92, 92, 0.12);
+  border: 1px solid rgba(255, 92, 92, 0.4);
+  border-radius: var(--radius);
+  padding: calc(var(--spacing) * 2);
+  margin-bottom: calc(var(--spacing) * 2);
+  color: #8a2626;
+  font-size: 0.85rem;
+}
+
 .detail-meta {
   display: flex;
   gap: var(--spacing);
   margin-bottom: var(--spacing);
+  flex-wrap: wrap;
 }
 
 .checklist {
@@ -431,10 +469,68 @@ input {
   accent-color: var(--accent);
 }
 
+.notes-list {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: calc(var(--spacing) * 2);
+  margin-bottom: calc(var(--spacing) * 2);
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.note-entry {
+  border-bottom: 1px solid var(--border);
+  padding-bottom: calc(var(--spacing));
+  margin-bottom: calc(var(--spacing));
+}
+
+.note-entry:last-child {
+  border-bottom: 0;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.note-meta {
+  margin: 0 0 4px;
+  font-size: 0.8rem;
+  color: var(--muted-text);
+}
+
+.note-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing);
+}
+
+.note-form__row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing);
+}
+
+.note-form input,
+.note-form textarea {
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  padding: calc(var(--spacing) * 1.5);
+  font: inherit;
+}
+
+.note-form textarea {
+  min-height: 80px;
+  resize: vertical;
+}
+
 .assistant-panel__header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+.assistant-context {
+  margin: 0 0 var(--spacing);
+  color: var(--muted-text);
+  font-size: 0.85rem;
 }
 
 .assistant-chat {

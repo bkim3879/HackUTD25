@@ -1,0 +1,8 @@
+fastapi
+uvicorn[standard]
+python-dotenv
+requests
+langchain>=0.2.11
+chromadb>=0.5.0
+langchain-openai>=0.1.14
+langgraph>=0.0.49

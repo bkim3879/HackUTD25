@@ -1,8 +1,9 @@
+import json
 import os
+
 import requests
 from dotenv import load_dotenv
 from requests.auth import HTTPBasicAuth
-import json
 
 load_dotenv()
 
@@ -11,83 +12,71 @@ JIRA_EMAIL = os.getenv("JIRA_EMAIL")
 JIRA_API_TOKEN = os.getenv("JIRA_API_TOKEN")
 auth = HTTPBasicAuth(JIRA_EMAIL, JIRA_API_TOKEN)
 
-def get_all_issues():
-    headers = {
-        "Accept": "application/json",
+DEFAULT_FIELDS = "summary,description,priority,status,assignee,updated"
+DEFAULT_JQL = os.getenv("JIRA_DEFAULT_JQL", 'project = "DWOS" ORDER BY priority DESC')
+
+
+def _request(method: str, url: str, **kwargs):
+    response = requests.request(method, url, auth=auth, **kwargs)
+    response.raise_for_status()
+    return response
+
+
+def get_all_issues(max_results: int = 100):
+    """Retrieve Jira issues using the supported /rest/api/3/search endpoint."""
+    headers = {"Accept": "application/json"}
+    payload = {
+        "jql": DEFAULT_JQL,
+        "maxResults": max_results,
+        "fields": DEFAULT_FIELDS,
     }
-    url = f"{JIRA_BASE_URL}/rest/agile/1.0/sprint/1/issue?fields=summary,description,priority"
-    response = requests.request(
-        "GET",
-        url,
-        headers=headers,
-        auth = auth
-        )
+    url = f"{JIRA_BASE_URL}/rest/api/3/search/jql"
+    response = _request("POST", url, headers=headers, json=payload)
     return response.json()
 
-def get_issue(issue_key):
-    headers = {
-        "Accept": "application/json",
-    }
-    url = f"{JIRA_BASE_URL}/rest/api/3/issue/{issue_key}?fields=summary,description,priority"
-    response = requests.request(
-        "GET",
-        url,
-        headers=headers,
-        auth = auth
-        )
+
+def get_issue(issue_key: str):
+    headers = {"Accept": "application/json"}
+    url = f"{JIRA_BASE_URL}/rest/api/3/issue/{issue_key}"
+    params = {"fields": DEFAULT_FIELDS}
+    response = _request("GET", url, headers=headers, params=params)
     return response.json()
 
-#Takes in the issue key and the transition name (e.g., "In Progress", "Done")
-# performs the transition and returns the result
 
 def transition_issue(issue_key: str, transition_name: str):
     """
-    Transitions a Jira issue to a new workflow status by name.
-
-    Args:
-        issue_key (str): The Jira issue key, e.g., "DWOS-1".
-        transition_name (str): The human-readable transition name, e.g., "In Progress" or "Done".
+    Transition a Jira issue to a new workflow status by matching the transition name.
     """
 
-    # Step 1. Get all available transitions for this issue
     transitions_url = f"{JIRA_BASE_URL}/rest/api/3/issue/{issue_key}/transitions"
     headers = {"Accept": "application/json", "Content-Type": "application/json"}
 
-    response = requests.get(transitions_url, headers=headers, auth=auth)
-    if response.status_code != 200:
-        print(f"Failed to get transitions: {response.status_code} - {response.text}")
-        return None
-
+    response = _request("GET", transitions_url, headers=headers)
     transitions = response.json().get("transitions", [])
     if not transitions:
-        print(f"No transitions available for issue {issue_key}")
-        return None
+        raise RuntimeError(f"No transitions available for issue {issue_key}")
 
-    # Step 2. Find the transition ID by matching its name
-    transition_id = None
-    for t in transitions:
-        if t["name"].lower() == transition_name.lower():
-            transition_id = t["id"]
-            break
+    target_transition = next(
+        (t for t in transitions if t["name"].lower() == transition_name.lower()),
+        None,
+    )
+    if not target_transition:
+        available = ", ".join(t["name"] for t in transitions)
+        raise RuntimeError(f"Transition '{transition_name}' not found. Available: {available}")
 
-    if not transition_id:
-        print(f"Transition '{transition_name}' not found for issue {issue_key}.")
-        print("Available transitions:")
-        for t in transitions:
-            print(f" - {t['name']}")
-        return None
-
-    # Step 3. Execute the transition using the transition ID
-    payload = json.dumps({
-        "transition": { "id": transition_id },
+    payload = {
+        "transition": {"id": target_transition["id"]},
         "update": {
             "comment": [
-                {"add": {"body": f"Issue automatically moved to '{transition_name}' by the Dynamic Work Order system."}}
+                {
+                    "add": {
+                        "body": f"Issue automatically moved to '{transition_name}' by the Dynamic Work Order system."
+                    }
+                }
             ]
-        }
-    })
-    r2 = requests.post(transitions_url, headers=headers, auth=auth, data=json.dumps(payload))
-    if r2.status_code == 204:
-        return {"ok": True, "moved_to": choice.get("to", {}).get("name", choice["id"])}
-    else:
-        return {"ok": False, "status": r2.status_code, "error": r2.text}
+        },
+    }
+    r2 = _request("POST", transitions_url, headers=headers, json=payload)
+    if r2.status_code in (200, 204):
+        return {"ok": True, "moved_to": target_transition.get("to", {}).get("name", transition_name)}
+    return {"ok": False, "status": r2.status_code, "error": r2.text}

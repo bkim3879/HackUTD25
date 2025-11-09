@@ -1,14 +1,20 @@
-export function Header() {
+export function Header({ onRefresh, loading, error }) {
   return (
     <header className="main-header">
       <div>
         <h1>Ops Command Center</h1>
         <p>
-          Synced • <span>Just now</span>
+          {loading ? "Syncing with Jira..." : "Synced"} • <span>{error ? `Error: ${error}` : "Live"}</span>
         </p>
       </div>
       <div className="header-actions">
-        <button className="icon-button" type="button" aria-label="Refresh dashboard">
+        <button
+          className="icon-button"
+          type="button"
+          aria-label="Refresh dashboard"
+          onClick={onRefresh}
+          disabled={loading}
+        >
           &#x21bb;
         </button>
         <button className="icon-button" type="button" aria-label="Toggle filters">
