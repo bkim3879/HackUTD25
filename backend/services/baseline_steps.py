@@ -27,12 +27,33 @@ DEFAULT_STEPS = [
 ]
 
 
-def select_steps(summary: str | None, description: str | None):
+PRIORITY_TEMPLATES = {
+    "1": DEFAULT_STEPS,
+    "2": BASELINE_TEMPLATES["network"],
+    "3": BASELINE_TEMPLATES["network"],
+    "4": BASELINE_TEMPLATES["power"],
+}
+
+
+def _resolve_priority_template(priority: str | None):
+    if not priority:
+        return None
+    normalized = priority.strip().lower()
+    digits = "".join(ch for ch in normalized if ch.isdigit())
+    key = digits or normalized
+    return PRIORITY_TEMPLATES.get(key)
+
+
+def select_steps(summary: str | None, description: str | None, priority: str | None = None):
+    template = _resolve_priority_template(priority)
+    if template:
+        return list(template)
+
     text = f"{summary or ''} {description or ''}".lower()
     if any(word in text for word in ["heat", "therm", "cool", "fan", "gpu"]):
-        return BASELINE_TEMPLATES["thermal"]
+        return list(BASELINE_TEMPLATES["thermal"])
     if any(word in text for word in ["power", "pdu", "voltage", "current"]):
-        return BASELINE_TEMPLATES["power"]
+        return list(BASELINE_TEMPLATES["power"])
     if any(word in text for word in ["network", "packet", "switch", "fabric"]):
-        return BASELINE_TEMPLATES["network"]
-    return DEFAULT_STEPS
+        return list(BASELINE_TEMPLATES["network"])
+    return list(DEFAULT_STEPS)

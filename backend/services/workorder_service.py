@@ -103,10 +103,6 @@ def _compute_score(issue: Dict[str, Any], missing: List[str]) -> float:
     return round(max(0.0, base + keyword_bonus - missing_penalty), 3)
 
 
-def _baseline_steps() -> List[Dict[str, Any]]:
-    return []
-
-
 def refresh_work_orders() -> Dict[str, Any]:
     issues = xjira_service.search_issues()
     WORK_ORDER_REGISTRY.clear()
@@ -133,7 +129,10 @@ def _build_record(issue: Dict[str, Any]) -> WorkOrderRecord:
         updated=issue.get("updated"),
         missing_fields=missing,
         score=score,
-        steps=[{"description": step, "status": "pending"} for step in select_steps(issue.get("summary"), issue.get("description"))],
+        steps=[
+            {"description": step, "status": "pending"}
+            for step in select_steps(issue.get("summary"), issue.get("description"), issue.get("priority"))
+        ],
         completed=is_completed,
     )
 
